@@ -9,11 +9,14 @@ from routes import auth_route, events_route
 from flask_httpauth import HTTPBasicAuth
 
 load_dotenv()
+UPLOAD_FOLDER = os.environ.get('IMAGES_UPLOAD', '/static/images')
+ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
+
 app = Flask(__name__, static_url_path='/static')
 CORS(app)
 auth = HTTPBasicAuth()
 
-
+app.config["IMAGES_UPLOAD"] = UPLOAD_FOLDER
 app.secret_key = os.environ.get('SECRET', os.urandom(16).hex())
 
 
