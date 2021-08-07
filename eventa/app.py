@@ -5,11 +5,11 @@ from flask import Flask, jsonify, session
 from flask_cors import CORS
 from werkzeug.security import check_password_hash
 from utils import s_auth
-from routes import auth_route
+from routes import auth_route, events_route
 from flask_httpauth import HTTPBasicAuth
 
 load_dotenv()
-app = Flask(__name__)
+app = Flask(__name__, static_url_path='/static')
 CORS(app)
 auth = HTTPBasicAuth()
 
@@ -33,6 +33,7 @@ def unauthorized():
 
 
 app.register_blueprint(auth_route, url_prefix="/auth")
+app.register_blueprint(events_route, url_prefix="/events")
 
 if __name__ == "__main__":
     app.run(port=5050, debug=True)

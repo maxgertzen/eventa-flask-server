@@ -52,3 +52,9 @@ class Event(Document):
     venue_id = ReferenceField('Venue', reverse_delete_rule=mongoengine.NULLIFY)
     user_host = ReferenceField('User', required=True, reverse_delete_rule=mongoengine.NULLIFY)
     category_id = ReferenceField('Category')
+
+    meta: {
+        'indexes': [
+            ('+category_id', '$name', '$description')
+        ]
+    }
