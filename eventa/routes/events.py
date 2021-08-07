@@ -1,13 +1,16 @@
 from flask import Blueprint, request, Response, session
 import json
+
+from eventa.app import auth
 from eventa.models import Event
+from eventa.utils import s_auth
 
 
 events_route = Blueprint("events_route", __name__)
 
 
 @events_route.route('/events', methods=["GET"])
-def get_some_events():
+def get_all_events():
     try:
         data = Event.objects(is_public=1)
         for event in data:
@@ -26,26 +29,84 @@ def get_some_events():
         )
 
 
-@events_route.route('/events/<event_id>', methods=["PUT"])
-# login_required
-def update_event(event_id, data_to_update):
+@events_route.route('/events/dashboard', methods=["POST"])
+@auth.login_required
+def get_user_events():
     try:
-        dbResponse = Event.objects(id=event_id).update_one(**dict(data_to_update))
-        print(dbResponse)
-        if dbResponse.modified_count == 1:
+        user_id = s_auth.loads(session['X-Authenticated'])
+        print(user_id)
+        data = Event.objects(user_host=user_id)
+        if data.count():
+            for event in data:
+                event["_id"] = str(event["_id"])
             return Response(
-                response=json.dumps({
-                    "message": "event updated"
-                }),
+                response=json.dumps(data),
                 status=200,
                 mimetype="application/json"
             )
         else:
             return Response(
+                response=json.dumps({"message": "No user events"}),
+                status=201,
+                mimetype="application/json"
+            )
+    except Exception as ex:
+        print(ex)
+        return Response(
+            response=json.dumps({"message": "cannot get events"}),
+            status=500,
+            mimetype="application/json"
+        )
+
+
+@events_route.route('/events/<event_id>', methods=["GET", "PUT"])
+@auth.login_required(optional=True)
+def handle_event(event_id, data_to_update):
+    try:
+        if request.method == 'PUT' and auth.current_user():
+            dbResponse = Event.objects(id=event_id).update_one(**dict(data_to_update))
+            print(dbResponse)
+            if dbResponse.modified_count == 1:
+                return Response(
+                    response=json.dumps({
+                        "message": "event updated"
+                    }),
+                    status=200,
+                    mimetype="application/json"
+                )
+            else:
+                return Response(
+                    response=json.dumps({
+                        "message": "Nothing to update"
+                    }),
+                    status=200,
+                    mimetype="application/json"
+                )
+        elif request.method == 'GET':
+            dbResponse = Event.objects(id=event_id)
+            if dbResponse.count():
+                return Response(
+                    response=json.dumps({
+                        "message": "event sent",
+                        "data": dbResponse
+                    }),
+                    status=200,
+                    mimetype="application/json"
+                )
+            else:
+                return Response(
+                    response=json.dumps({
+                        "message": "No such event"
+                    }),
+                    status=301,
+                    mimetype="application/json"
+                )
+        else:
+            return Response(
                 response=json.dumps({
-                    "message": "Nothing to update"
+                    "message": "Something went wrong"
                 }),
-                status=200,
+                status=501,
                 mimetype="application/json"
             )
     except Exception as ex:
@@ -60,11 +121,12 @@ def update_event(event_id, data_to_update):
 
 
 @events_route.route('/events/<event_id>', methods=["DELETE"])
-# login_required
+@auth.login_required
 def delete_event(event_id):
     try:
         query_event = Event.objects(id=event_id)
-        if session["user_id"] in query_event:
+        user_id = s_auth.loads(session['X-Authenticated'])
+        if user_id in query_event:
             dbResponse = query_event.delete()
             print(dbResponse)
             if dbResponse.deleted_count == 1:
