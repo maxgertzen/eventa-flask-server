@@ -1,11 +1,11 @@
 from flask import Blueprint, request, Response, session
-import json
-
-from eventa.app import auth
+from flask_httpauth import HTTPBasicAuth
 from eventa.models import Event
 from eventa.utils import s_auth
+import json
 
 
+auth = HTTPBasicAuth()
 events_route = Blueprint("events_route", __name__)
 
 
