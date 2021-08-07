@@ -21,11 +21,14 @@ def create_user():
         dbResponse.save()
         os.environ["PASS_HASH"] = generate_password_hash(new_user["password"])
         session['X-Authenticated'] = s_auth.dumps(str(dbResponse.id))
-        return Response(
+        session['user'] = s_auth.dumps(dbResponse.first_name)
+        res = Response(
             response=json.dumps({"message": "user created", "id": f"{dbResponse.id}"}),
             status=200,
             mimetype="application/json"
         )
+        res.set_cookie("user", f"{dbResponse.id}?{dbResponse.first_name}")
+        return res
     except Exception as ex:
         msg = 'Email already registered' if type(ex) is mongoengine.errors.NotUniqueError else 'Something went wrong'
         return Response(
@@ -51,11 +54,14 @@ def login_user():
                 )
             session["X-Authenticated"] = None
             session.modified = True
-        return Response(
+        res = Response(
             response=json.dumps({"message": "Email or password is wrong"}),
             status=400,
             mimetype="application/json"
         )
+        if query.count():
+            res.set_cookie("user", f"{query[0].id}?{query[0].first_name}")
+        return res
     except Exception as ex:
         print(ex)
         return Response(
