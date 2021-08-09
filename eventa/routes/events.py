@@ -1,25 +1,30 @@
 import os
+from datetime import datetime
 
 from flask import Blueprint, request, Response, session
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.utils import secure_filename
-
+from mongoengine.queryset.visitor import Q
 from eventa.models import Event
 from eventa.utils import s_auth
 import json
-
+import jsonpickle
+from eventa.utils.converter_utils import EventJSON, JSONEncoder
 from eventa.utils.file_utils import allowed_file
 
 auth = HTTPBasicAuth()
 events_route = Blueprint("events_route", __name__)
 
 
-@events_route.route('/events', methods=["GET"])
+@events_route.route('/all', methods=["GET"])
 def get_all_events():
     try:
-        data = Event.objects(is_public=1)
-        for event in data:
-            event["_id"] = str(event["_id"])
+        data = Event.objects(is_public=1).order_by('start_date') if 'search' not in request.args else \
+            Event.objects(Q(is_public=1) & Q(start_date__gte=datetime.now())).order_by('start_date')
+        if 'search' in request.args:
+            data = data.limit(4)
+        new = JSONEncoder().encode(data)
+        print(new)
         return Response(
             response=json.dumps(data),
             status=200,
@@ -34,7 +39,7 @@ def get_all_events():
         )
 
 
-@events_route.route('/events/dashboard', methods=["POST"])
+@events_route.route('/dashboard', methods=["POST"])
 @auth.login_required
 def get_user_events():
     try:
@@ -64,7 +69,7 @@ def get_user_events():
         )
 
 
-@events_route.route('/events/create', methods=["POST"])
+@events_route.route('/create', methods=["POST"])
 @auth.login_required
 def create_event():
     try:
@@ -100,7 +105,7 @@ def create_event():
         )
 
 
-@events_route.route('/events/<event_id>', methods=["GET", "PUT"])
+@events_route.route('/<event_id>', methods=["GET", "PUT"])
 @auth.login_required(optional=True)
 def handle_event(event_id, data_to_update):
     try:
@@ -161,7 +166,7 @@ def handle_event(event_id, data_to_update):
         )
 
 
-@events_route.route('/events/<event_id>', methods=["DELETE"])
+@events_route.route('/<event_id>', methods=["DELETE"])
 @auth.login_required
 def delete_event(event_id):
     try:

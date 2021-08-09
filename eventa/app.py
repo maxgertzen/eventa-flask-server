@@ -13,10 +13,12 @@ UPLOAD_FOLDER = os.environ.get('IMAGES_UPLOAD', '/static/images')
 ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
 
 app = Flask(__name__, static_url_path='/static')
-CORS(app)
+cors = CORS(app, supports_credentials=True, resources={"*":{"origins":"http://localhost:3000"}})
+
 auth = HTTPBasicAuth()
 
 app.config["IMAGES_UPLOAD"] = UPLOAD_FOLDER
+app.config['CORS_HEADERS'] = 'content-Type'
 app.secret_key = os.environ.get('SECRET', os.urandom(16).hex())
 
 

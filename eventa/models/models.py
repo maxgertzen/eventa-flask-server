@@ -44,17 +44,18 @@ class Event(Document):
     name = StringField()
     description = StringField()
     price = IntField()
-    date_start = DateTimeField(default=datetime.datetime.now)
-    date_end = DateTimeField(default=datetime.datetime.now)
-    is_public = BinaryField(default=0)
+    start_date = DateTimeField(default=datetime.datetime.now)
+    end_date = DateTimeField(default=datetime.datetime.now)
+    is_public = IntField(default=0)
     guest_list = ListField(ReferenceField('User', reverse_delete_rule=mongoengine.NULLIFY))
     image = StringField()
-    venue_id = ReferenceField('Venue', reverse_delete_rule=mongoengine.NULLIFY)
+    venue_ref = ReferenceField('Venue', reverse_delete_rule=mongoengine.NULLIFY)
     user_host = ReferenceField('User', required=True, reverse_delete_rule=mongoengine.NULLIFY)
-    category_id = ReferenceField('Category')
+    category = ReferenceField('Category')
 
     meta: {
+        'collections': 'event',
         'indexes': [
-            ('+category_id', '$name', '$description')
+            ('+category', '$name', '$description')
         ]
     }
