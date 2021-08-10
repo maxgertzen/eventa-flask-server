@@ -20,6 +20,7 @@ def get_all_events():
         data = Event.objects(is_public=1)
         for event in data:
             event["_id"] = str(event["_id"])
+            print(event["start_date"])
         return Response(
             response=json.dumps(data),
             status=200,
