@@ -8,8 +8,6 @@ from mongoengine.queryset.visitor import Q
 from eventa.models import Event
 from eventa.utils import s_auth
 import json
-import jsonpickle
-from eventa.utils.converter_utils import EventJSON, JSONEncoder
 from eventa.utils.file_utils import allowed_file
 
 auth = HTTPBasicAuth()
@@ -23,10 +21,8 @@ def get_all_events():
             Event.objects(Q(is_public=1) & Q(start_date__gte=datetime.now())).order_by('start_date')
         if 'search' in request.args:
             data = data.limit(4)
-        new = JSONEncoder().encode(data)
-        print(new)
         return Response(
-            response=json.dumps(data),
+            response=json.dumps(json.loads(data.to_json())),
             status=200,
             mimetype="application/json"
         )
