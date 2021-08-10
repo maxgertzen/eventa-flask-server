@@ -76,8 +76,28 @@ def logout_user():
     session.clear()
     session.modified = True
     os.environ["PASS_HASH"] = ''
-    return Response(
+    res = Response(
         response=json.dumps({"message": "Logged out"}),
         status=201,
         mimetype="application/json"
     )
+    res.delete_cookie("user")
+    return res
+
+
+@auth_route.route('/email', methods=["POST"])
+def is_email_available():
+    check_email = request.values["email"]
+    dbResponse = User.objects(email=check_email).first()
+    if dbResponse:
+        return Response(
+            response=json.dumps(False),
+            status=308,
+            mimetype="application/json"
+        )
+    else:
+        return Response(
+            response=json.dumps(True),
+            status=200,
+            mimetype="application/json"
+        )
