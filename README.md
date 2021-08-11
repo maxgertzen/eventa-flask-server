@@ -7,6 +7,8 @@ Server-side implementation with mongoDB and python
 
 Please run pip install to download dependencies.
 
+Run app.py in /eventa/ folder
+
 # Version with MySQL and NodeJS
 
 Link: https://github.com/maxgertzen/eventa-app-server
