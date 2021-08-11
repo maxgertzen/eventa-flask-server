@@ -33,6 +33,7 @@ class User(Document):
 
 class Venue(Document):
     venueName = StringField(required=True)
+    venue_ref = IntField(null=False)
     venueDescription = StringField()
     venueWebsite = URLField()
     street = StringField()
@@ -49,13 +50,17 @@ class Event(Document):
     is_public = IntField(default=0)
     guest_list = ListField(ReferenceField('User', reverse_delete_rule=mongoengine.NULLIFY))
     image = StringField()
-    venue_ref = ReferenceField('Venue', reverse_delete_rule=mongoengine.NULLIFY)
-    user_host = ReferenceField('User', required=True, reverse_delete_rule=mongoengine.NULLIFY)
-    category = ReferenceField('Category')
+    category = DictField()
+    user_host = ReferenceField(User, required=True, reverse_delete_rule=mongoengine.NULLIFY)
+    venue = DictField()
+    venueName = StringField()
+    venueStreet = StringField()
+    venueCity = StringField()
+    venueCountry = StringField()
 
     meta: {
         'collections': 'event',
         'indexes': [
-            ('+category', '$name', '$description')
+            ('+category', '$name', '$description', '+start_date', '+is_public')
         ]
     }

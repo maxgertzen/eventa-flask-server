@@ -1,14 +1,15 @@
 import os
 from datetime import datetime
 
+from bson import ObjectId
 from flask import Blueprint, request, Response, session
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.utils import secure_filename
 from mongoengine.queryset.visitor import Q
 from eventa.models import Event
-from eventa.utils import s_auth
+from eventa.utils import s_auth, allowed_file, EventFormatter
 import json
-from eventa.utils.file_utils import allowed_file
+
 
 auth = HTTPBasicAuth()
 events_route = Blueprint("events_route", __name__)
@@ -17,12 +18,19 @@ events_route = Blueprint("events_route", __name__)
 @events_route.route('/all', methods=["GET"])
 def get_all_events():
     try:
-        data = Event.objects(is_public=1).order_by('start_date') if 'search' not in request.args else \
-            Event.objects(Q(is_public=1) & Q(start_date__gte=datetime.now())).order_by('start_date')
+        data = list()
+        result = Event.objects(is_public=1).order_by('start_date') if 'search' not in request.args\
+            else Event.objects(Q(is_public=1) & Q(start_date__gte=datetime.now()))\
+            .order_by('start_date')
         if 'search' in request.args:
-            data = data.limit(4)
+            result = result.limit(4)
+        for single_event in result:
+            single_event = json.loads(single_event.to_json())
+            single_event["_id"] = str(single_event["_id"]["$oid"])
+            new_e = EventFormatter(**single_event)
+            data.append(json.loads(new_e.to_json()))
         return Response(
-            response=json.dumps(json.loads(data.to_json())),
+            response=json.dumps(data),
             status=200,
             mimetype="application/json"
         )
@@ -103,7 +111,7 @@ def create_event():
 
 @events_route.route('/<event_id>', methods=["GET", "PUT"])
 @auth.login_required(optional=True)
-def handle_event(event_id, data_to_update):
+def handle_event(event_id, data_to_update=None):
     try:
         if request.method == 'PUT' and auth.current_user():
             dbResponse = Event.objects(id=event_id).update_one(**dict(data_to_update))
@@ -125,13 +133,19 @@ def handle_event(event_id, data_to_update):
                     mimetype="application/json"
                 )
         elif request.method == 'GET':
-            dbResponse = Event.objects(id=event_id)
-            if dbResponse.count():
+            print(event_id)
+            dbResponse = Event.objects(id=event_id).first()
+            if dbResponse:
+                # for single_event in result:
+                #     single_event = json.loads(single_event.to_json())
+                #     single_event["_id"] = str(single_event["_id"]["$oid"])
+                #     new_e = EventFormatter(**single_event)
+                #     data.append(json.loads(new_e.to_json()))
+                result = json.loads(dbResponse.to_json())
+                result["_id"] = str(result["_id"]["$oid"])
+                formatted_e = EventFormatter(**result)
                 return Response(
-                    response=json.dumps({
-                        "message": "event sent",
-                        "data": dbResponse
-                    }),
+                    response=json.dumps(json.loads(formatted_e.to_json())),
                     status=200,
                     mimetype="application/json"
                 )
