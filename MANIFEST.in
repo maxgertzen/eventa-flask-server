@@ -1,0 +1,2 @@
+graft eventa/static
+global-exclude *.pyc

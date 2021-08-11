@@ -44,7 +44,6 @@ def login_user():
         query = User.objects(email=request.values["email"])
         SECRET = os.environ.get("PASS_HASH", generate_password_hash(s_auth.dumps(query[0].password)))
         if query.count():
-            print(query[0].password)
             if check_password_hash(SECRET, query[0].password):
                 session["X-Authenticated"] = s_auth.dumps(str(query[0].id))
                 return Response(
@@ -60,7 +59,7 @@ def login_user():
             mimetype="application/json"
         )
         if query.count():
-            res.set_cookie("user", f"{query[0].id}?{query[0].first_name}")
+            res.set_cookie("user", f"{str(query[0].id)}?{query[0].first_name}")
         return res
     except Exception as ex:
         print(ex)
