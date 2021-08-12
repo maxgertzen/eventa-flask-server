@@ -48,3 +48,13 @@ class UserFormatter:
 
     def to_json(self):
         return json.dumps(self, default=datetime_option, sort_keys=True, indent=4)
+
+
+class Event_Mongo_Format(dict):
+    def __init__(self, **kwargs):
+        self.name = kwargs.get('name')
+        self.description = kwargs.get('description')
+        self.price = int(kwargs.get('price'))
+        self.start_date = kwargs.get('dateStart')
+        self.end_date = kwargs.get('dateEnd')
+        self.is_public = 1 if kwargs.get('isPublic') == 'true' else 0

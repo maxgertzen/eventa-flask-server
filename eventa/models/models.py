@@ -23,11 +23,11 @@ class User(DynamicDocument):
     address = StringField(required=False)
     accept_mail = IntField(min_value=0, max_value=1, default=0)
     is_verified = IntField(min_value=0, max_value=1, default=0)
-    saved_events = ListField(ObjectIdField)
+    saved_events = ListField(StringField())
 
     meta: {
         'collections': 'user',
-        'indexes': 'email'
+        'indexes': '$email'
     }
 
 

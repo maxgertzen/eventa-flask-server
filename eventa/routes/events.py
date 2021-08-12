@@ -6,10 +6,10 @@ from flask import Blueprint, request, Response, session
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.utils import secure_filename
 from mongoengine.queryset.visitor import Q
-from eventa.models import Event
-from eventa.utils import s_auth, allowed_file, EventFormatter
+from eventa.models import Event, User, Category
+from eventa.utils import s_auth, allowed_file, EventFormatter, Event_Mongo_Format
 import json
-
+from flask import current_app
 
 auth = HTTPBasicAuth()
 events_route = Blueprint("events_route", __name__)
@@ -19,6 +19,18 @@ events_route = Blueprint("events_route", __name__)
 def get_all_events():
     try:
         data = list()
+        saved_result = list()
+        if session["X-Authenticated"]:
+            user_id = s_auth.loads(session['X-Authenticated'])
+            dbResponse = User.objects(id=user_id).only('saved_events').first()
+            user_events = json.loads(dbResponse.to_json())
+            if len(user_events['saved_events']):
+                for event_id in user_events['saved_events']:
+                    e = Event.objects(is_public=1, id=event_id).first()
+                    single_event = json.loads(e.to_json())
+                    single_event["_id"] = str(single_event["_id"]["$oid"])
+                    new_e = EventFormatter(**single_event)
+                    saved_result.append(json.loads(new_e.to_json()))
         result = Event.objects(is_public=1).order_by('start_date') if 'search' not in request.args\
             else Event.objects(Q(is_public=1) & Q(start_date__gte=datetime.now()))\
             .order_by('start_date')
@@ -30,7 +42,7 @@ def get_all_events():
             new_e = EventFormatter(**single_event)
             data.append(json.loads(new_e.to_json()))
         return Response(
-            response=json.dumps(data),
+            response=json.dumps({"events": data, "saved": saved_result}),
             status=200,
             mimetype="application/json"
         )
@@ -63,7 +75,7 @@ def get_user_events():
                 )
             else:
                 return Response(
-                    response=json.dumps({"message": "No user events"}),
+                    response=json.dumps({"message": "No user events", "count": len(data)}),
                     status=201,
                     mimetype="application/json"
                 )
@@ -76,39 +88,51 @@ def get_user_events():
     except Exception as ex:
         print(ex)
         return Response(
-            response=json.dumps({"message": "cannot get events"}),
+            response=json.dumps({"message": "cannot get events", "count": 0}),
             status=500,
             mimetype="application/json"
         )
 
 
 @events_route.route('/create', methods=["POST"])
-@auth.login_required
 def create_event():
     try:
-        new_event = Event(**dict(request.values))
-        file = request.files["imageupload"]
-        valid_filename = allowed_file(file.filename)
-        if file and valid_filename:
-            filename = secure_filename(file.filename)
-            image_path = os.path.join(os.environ["IMAGES_UPLOAD"], filename)
-            new_event["image"] = image_path
-            file.save(image_path)
-        elif file and not valid_filename:
+        if session["X-Authenticated"]:
+            form_data = request.form.to_dict()
+            f_e = Event_Mongo_Format(**form_data)
+            category_name = Category.objects(cat_code=int(form_data["category"])).first()
+            setattr(f_e, "category", {"title": category_name.title})
+            print(f_e.__dict__)
+            new_event = Event(**f_e.__dict__)
+            print(new_event.to_json())
+            file = request.files["imageupload"]
+            valid_filename = allowed_file(file.filename)
+            if file and valid_filename:
+                filename = secure_filename(file.filename)
+                image_path = os.path.join(current_app.config.get("IMAGES_UPLOAD"), filename)
+                new_event["image"] = image_path
+                file.save(image_path)
+            elif file and not valid_filename:
+                return Response(
+                    response=json.dumps({"message": "Wrong image format, please upload different image"}),
+                    status=501,
+                    mimetype="application/json"
+                )
+            else:
+                new_event["image"] = 'images/image-placeholder.png'
+            new_event["user_host"] = ObjectId(s_auth.loads(session["X-Authenticated"]))
+            new_event.save()
             return Response(
-                response=json.dumps({"message": "Wrong image format, please upload different image"}),
-                status=501,
+                response=json.dumps({"message": f"Event {new_event.name} created"}),
+                status=200,
                 mimetype="application/json"
             )
         else:
-            new_event["image"] = '/image-placeholder.png'
-        new_event["user_host"] = s_auth.loads(session["X-Authenticated"])
-        new_event.save()
-        return Response(
-            response=json.dumps({"message": f"Event {new_event.name} created"}),
-            status=200,
-            mimetype="application/json"
-        )
+            return Response(
+                response=json.dumps({"message": "Unauthorized access"}),
+                status=400,
+                mimetype="application/json"
+            )
     except Exception as ex:
         print(ex)
         return Response(

@@ -9,12 +9,12 @@ from utils import s_auth
 from routes import auth_route, events_route, users_route
 from flask_httpauth import HTTPBasicAuth
 
-load_dotenv()
-UPLOAD_FOLDER = os.environ.get('IMAGES_UPLOAD', '/static/images')
-ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
 
 
 def create_app():
+    load_dotenv()
+    UPLOAD_FOLDER = os.environ.get('IMAGES_UPLOAD', '/images/')
+    ALLOWED_EXTENSIONS = os.environ.get('ALLOWED_EXTENSIONS', {'png', 'jpg', 'jpeg', 'gif'})
     app = Flask(__name__, static_url_path='/static')
     cors = CORS(app, supports_credentials=True, resources={"*":{"origins":"http://localhost:3000"}})
 
