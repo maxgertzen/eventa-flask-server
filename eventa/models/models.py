@@ -12,7 +12,7 @@ class Category(Document):
     cat_code = IntField(required=True, unique=True)
 
 
-class User(Document):
+class User(DynamicDocument):
     first_name = StringField(required=False)
     last_name = StringField(required=False)
     email = EmailField(required=True, unique=True)
