@@ -1,2 +1,3 @@
+include setup.py
 graft eventa/static
 global-exclude *.pyc
