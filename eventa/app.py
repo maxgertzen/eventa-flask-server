@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, session
 from flask_cors import CORS
 from werkzeug.security import check_password_hash
+
 from utils import s_auth
-from routes import auth_route, events_route
+from routes import auth_route, events_route, users_route
 from flask_httpauth import HTTPBasicAuth
 
 load_dotenv()
@@ -38,6 +39,7 @@ def create_app():
 
     app.register_blueprint(auth_route, url_prefix="/auth")
     app.register_blueprint(events_route, url_prefix="/events")
+    app.register_blueprint(users_route, url_prefix="/users")
 
     return app
 

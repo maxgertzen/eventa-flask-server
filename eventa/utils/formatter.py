@@ -31,3 +31,20 @@ class EventFormatter:
 
     def to_json(self):
         return json.dumps(self, default=datetime_option, sort_keys=True, indent=4)
+
+
+class UserFormatter:
+    def __init__(self, **kwargs):
+        self.user_id = kwargs.get('_id')
+        self.email = kwargs.get('email')
+        self.bio = kwargs.get('bio')
+        self.first_name = kwargs.get('first_name')
+        self.last_name = kwargs.get('last_name')
+        self.birth_date = Timestamp(kwargs.get('birth_date')["$date"] // 1000, 1).as_datetime()
+        self.accept_mail = kwargs.get('accept_mail')
+        self.city = kwargs.get('city')
+        self.country = kwargs.get('country')
+        self.image = 'http://localhost:5050/static/images' + kwargs.get('image')
+
+    def to_json(self):
+        return json.dumps(self, default=datetime_option, sort_keys=True, indent=4)
