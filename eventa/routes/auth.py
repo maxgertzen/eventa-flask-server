@@ -42,18 +42,17 @@ def create_user():
 def login_user():
     try:
         query = User.objects(email=request.json["email"]).first()
-        os.environ["PASS_HASH"] = generate_password_hash(s_auth.dumps(query.password))
-        SECRET = os.environ["PASS_HASH"]
         if query:
-            query["_id"] = str(query.id)
+            os.environ["PASS_HASH"] = generate_password_hash(s_auth.dumps(query.password))
+            SECRET = os.environ["PASS_HASH"]
             if check_password_hash(SECRET, s_auth.dumps(query.password)):
-                session["X-Authenticated"] = s_auth.dumps(query.id)
+                session["X-Authenticated"] = s_auth.dumps(str(query.id))
                 res = Response(
                     response=json.dumps({"message": "Logged In"}),
                     status=200,
                     mimetype="application/json"
                 )
-                res.set_cookie("user", f"{query.id}?{query.first_name}")
+                res.set_cookie("user", f"{str(query.id)}?{query.first_name}")
                 return res
             os.environ["PASS_HASH"] = ""
             session["X-Authenticated"] = None

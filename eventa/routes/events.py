@@ -43,25 +43,34 @@ def get_all_events():
         )
 
 
-@events_route.route('/dashboard', methods=["POST"])
-@auth.login_required
+@events_route.route('/dashboard', methods=["GET"])
 def get_user_events():
     try:
-        user_id = s_auth.loads(session['X-Authenticated'])
-        print(user_id)
-        data = Event.objects(user_host=user_id)
-        if data.count():
-            for event in data:
-                event["_id"] = str(event["_id"])
-            return Response(
-                response=json.dumps(data),
-                status=200,
-                mimetype="application/json"
-            )
+        data = list()
+        if request.cookies.get('user'):
+            user_id = s_auth.loads(session['X-Authenticated'])
+            results = Event.objects(user_host=user_id)
+            if results.count():
+                for event in results:
+                    event = json.loads(event.to_json())
+                    event["_id"] = str(event["_id"]["$oid"])
+                    new_e = EventFormatter(**event)
+                    data.append(json.loads(new_e.to_json()))
+                return Response(
+                    response=json.dumps({"userEvents": data, "count": len(data)}),
+                    status=200,
+                    mimetype="application/json"
+                )
+            else:
+                return Response(
+                    response=json.dumps({"message": "No user events"}),
+                    status=201,
+                    mimetype="application/json"
+                )
         else:
             return Response(
-                response=json.dumps({"message": "No user events"}),
-                status=201,
+                response=json.dumps({"message": "Unauthorized"}),
+                status=400,
                 mimetype="application/json"
             )
     except Exception as ex:
@@ -136,11 +145,6 @@ def handle_event(event_id, data_to_update=None):
             print(event_id)
             dbResponse = Event.objects(id=event_id).first()
             if dbResponse:
-                # for single_event in result:
-                #     single_event = json.loads(single_event.to_json())
-                #     single_event["_id"] = str(single_event["_id"]["$oid"])
-                #     new_e = EventFormatter(**single_event)
-                #     data.append(json.loads(new_e.to_json()))
                 result = json.loads(dbResponse.to_json())
                 result["_id"] = str(result["_id"]["$oid"])
                 formatted_e = EventFormatter(**result)
